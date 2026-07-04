@@ -13,6 +13,7 @@ import com.cooking.entity.User;
 import com.cooking.mapper.OrderMapper;
 import com.cooking.service.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.util.List;
 
@@ -38,7 +39,33 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private NotificationService notificationService;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean createOrder(Order order) {
+        if (order.getDishes() != null) {
+            for (OrderItem item : order.getDishes()) {
+                if (item.getDishId() == null) {
+                    throw new IllegalArgumentException("菜品ID不能为空");
+                }
+                if (item.getQuantity() == null || item.getQuantity() <= 0) {
+                    throw new IllegalArgumentException("菜品数量必须大于0");
+                }
+
+                Dish dish = dishService.getById(item.getDishId());
+                if (dish == null) {
+                    throw new IllegalArgumentException(
+                            "菜品不存在或已下架，请清空购物车后重新选择（菜品ID：" + item.getDishId() + "）"
+                    );
+                }
+                if (dish.getPrice() == null) {
+                    throw new IllegalStateException("菜品价格未设置（菜品ID：" + item.getDishId() + "）");
+                }
+
+                item.setSubtotal(
+                        dish.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()))
+                );
+            }
+        }
+
         String orderNo = generateOrderNo();
         order.setOrderNo(orderNo);
         if (order.getStatus() == null) {
@@ -53,14 +80,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (orderSaved && order.getDishes() != null && !order.getDishes().isEmpty()) {
             for (OrderItem item : order.getDishes()) {
                 item.setOrderId(order.getId());
-                // 通过菜品ID获取菜品价格来计算小计
-                if (item.getDishId() != null && item.getQuantity() != null) {
-                    Dish dish = dishService.getById(item.getDishId());
-                    if (dish != null) {
-                        item.setSubtotal(dish.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
-                    }
+                if (!orderItemService.save(item)) {
+                    throw new IllegalStateException("订单明细保存失败");
                 }
-                orderItemService.save(item);
             }
         }
 
