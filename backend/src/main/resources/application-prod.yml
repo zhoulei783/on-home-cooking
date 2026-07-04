@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://prod-mysql:3306/cooking_service_platform?useUnicode=true&characterEncoding=utf8&useSSL=false
+    username: prod_user
+    password: prod_password
+    druid:
+      initial-size: 10
+      min-idle: 10
+      max-active: 50
+      max-wait: 60000
+
+server:
+  port: 80
+  servlet:
+    context-path: /cooking

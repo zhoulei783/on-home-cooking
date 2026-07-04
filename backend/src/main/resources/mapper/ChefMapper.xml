@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 对应 ChefMapper 接口 -->
+<mapper namespace="com.cooking.mapper.ChefMapper">
+    <!-- 基础字段映射 -->
+    <sql id="Base_Column_List">
+        id, name, phone, skill, price, password, total_earnings, paid_amount, remaining_amount, create_time
+    </sql>
+
+    <!-- 根据ID查询厨师 -->
+    <select id="selectById" parameterType="java.lang.Long" resultType="com.cooking.entity.Chef">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM chef
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据状态查询厨师（空闲/忙碌） -->
+    <select id="selectByStatus" parameterType="java.lang.Integer" resultType="com.cooking.entity.Chef">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM chef
+        WHERE status = #{status}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据擅长菜系模糊查询 -->
+    <select id="selectBySkill" parameterType="java.lang.String" resultType="com.cooking.entity.Chef">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM chef
+        WHERE skill LIKE CONCAT('%', #{skill}, '%')
+        AND status = 0 <!-- 只查空闲厨师 -->
+        ORDER BY price ASC
+    </select>
+
+    <!-- 新增厨师 -->
+    <insert id="insert" parameterType="com.cooking.entity.Chef" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chef (
+            name, phone, skill, price, password, total_earnings, paid_amount, remaining_amount, create_time
+        ) VALUES (
+                     #{name}, #{phone}, #{skill}, #{price}, #{password}, #{totalEarnings}, #{paidAmount}, #{remainingAmount}, #{createTime}
+                 )
+    </insert>
+
+    <!-- 更新厨师状态 -->
+    <update id="updateStatusById" parameterType="map">
+        UPDATE chef
+        SET status = #{map.status}
+        WHERE id = #{map.chefId}
+    </update>
+
+    <!-- 更新厨师收入信息 -->
+    <update id="updateEarnings" parameterType="map">
+        UPDATE chef
+        SET total_earnings = #{map.totalEarnings},
+            paid_amount = #{map.paidAmount},
+            remaining_amount = #{map.remainingAmount}
+        WHERE id = #{map.chefId}
+    </update>
+
+    <!-- 增加厨师收入 -->
+    <update id="addEarnings" parameterType="map">
+        UPDATE chef
+        SET total_earnings = total_earnings + #{map.amount},
+            remaining_amount = remaining_amount + #{map.amount}
+        WHERE id = #{map.chefId}
+    </update>
+
+    <!-- 发放厨师收入 -->
+    <update id="payEarnings" parameterType="map">
+        UPDATE chef
+        SET paid_amount = paid_amount + #{map.amount},
+            remaining_amount = remaining_amount - #{map.amount}
+        WHERE id = #{map.chefId}
+        AND remaining_amount >= #{map.amount}
+    </update>
+
+    <!-- 分页查询厨师（支持状态/菜系筛选） -->
+    <select id="selectChefPage" parameterType="map" resultType="com.cooking.entity.Chef">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM chef
+        <where>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+            <if test="skill != null and skill != ''">
+                AND skill LIKE CONCAT('%', #{skill}, '%')
+            </if>
+        </where>
+        ORDER BY price ASC, create_time DESC
+    </select>
+</mapper>

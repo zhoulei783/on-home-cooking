@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 对应 OrderMapper 接口 -->
+<mapper namespace="com.cooking.mapper.OrderMapper">
+    <!-- 基础字段映射 -->
+    <sql id="Base_Column_List">
+        id, order_no, user_id, chef_id, cooking_time, address, price, status, create_time
+    </sql>
+
+    <!-- 根据ID查询订单 -->
+    <select id="selectById" parameterType="java.lang.Long" resultType="com.cooking.entity.Order">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM `order`
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据订单编号查询 -->
+    <select id="selectByOrderNo" parameterType="java.lang.String" resultType="com.cooking.entity.Order">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM `order`
+        WHERE order_no = #{orderNo}
+    </select>
+
+    <!-- 根据用户ID查询订单（按时间倒序） -->
+    <select id="selectByUserId" parameterType="java.lang.Long" resultType="com.cooking.entity.Order">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM `order`
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据厨师ID查询订单 -->
+    <select id="selectByChefId" parameterType="java.lang.Long" resultType="com.cooking.entity.Order">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM `order`
+        WHERE chef_id = #{chefId}
+        ORDER BY cooking_time DESC
+    </select>
+
+    <!-- 新增订单 -->
+    <insert id="insert" parameterType="com.cooking.entity.Order" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO `order` (
+            order_no, user_id, chef_id, cooking_time, address, price, status, create_time
+        ) VALUES (
+                     #{orderNo}, #{userId}, #{chefId}, #{cookingTime}, #{address}, #{price}, #{status}, #{createTime}
+                 )
+    </insert>
+
+    <!-- 更新订单状态 -->
+    <update id="updateStatusByOrderNo" parameterType="map">
+        UPDATE `order`
+        SET status = #{map.status}
+        WHERE order_no = #{map.orderNo}
+    </update>
+
+    <!-- 分页查询订单（支持用户ID/厨师ID/状态筛选） -->
+    <select id="selectOrderPage" parameterType="map" resultType="com.cooking.entity.Order">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM `order`
+        <where>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+            <if test="chefId != null">
+                AND chef_id = #{chefId}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+</mapper>
